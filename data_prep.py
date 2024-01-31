@@ -42,6 +42,6 @@ def get_communities_data():
 
 def get_frequencies(S):
     p = []
-    for p_s in S.value_counts(1):
+    for p_s in sorted(S.value_counts(1)):
         p.append(p_s)
     return p 
