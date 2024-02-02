@@ -69,11 +69,11 @@ def plot_predictions(model, X, y):
     plt.plot(y, y, c = 'r')
     plt.show()
 
-
+#moving average function for smoothing the plots
 def moving_average(x, w):
     return np.convolve(x, np.ones(w), 'valid') / w
 
-
+#plot unfairness history wrt number of iterations (takes the history from FairReg.history)
 def plot_risk_history(risk_history_all, T, moving_av=1, dataset='law school'):
     
     risk_history = np.mean(risk_history_all, axis=0)
@@ -95,7 +95,7 @@ def plot_risk_history(risk_history_all, T, moving_av=1, dataset='law school'):
         
     plt.legend()
     
-    
+#plot unfairness history wrt number of iterations (takes the history from FairReg.history)
 def plot_unfairness_history(unf_all, T, K, moving_av=1, unf_type='average unfairness in grid', dataset='law school'):
     
     colors = ['g', 'orange']
@@ -123,7 +123,7 @@ def plot_unfairness_history(unf_all, T, K, moving_av=1, unf_type='average unfair
 
         plt.legend()
         
-        
+#plot unfairness vs risk wrt number of iterations        
 def plot_unfairness_vs_risk(risk_history_all, unf_all, T, K, moving_av=1, dataset='law school'):
     
     colors = ['g', 'orange']
@@ -151,3 +151,51 @@ def plot_unfairness_vs_risk(risk_history_all, unf_all, T, K, moving_av=1, datase
                              alpha=.2, label="std - S="+str(s), color=colors[s], lw=0)
         plt.legend()
     
+#plot unfairness vs risk wrt pairs of epsilon thresholds           
+def plot_risk_unf_wrt_eps(unf_all, risk_all, K=2, unf_type='average unfairness in grid', 
+                          risk_type='probabilistic risk', dataset='communities and crime',
+                          colors = ['g', 'orange'], legend_size=8, alpha=0.7):   
+    plt.title(dataset)
+    plt.xlabel(unf_type)
+    plt.ylabel(risk_type)
+    
+    for s in range(K):
+        plt.scatter(unf_all[s], risk_all, label='s='+str(s), alpha=alpha, color=colors[s])
+        for i in range(len(risk_all)):
+            plt.annotate('eps'+str(i+1), (unf_all[s][i], risk_all[i]), fontsize=8)
+            
+    plt.legend(prop={'size': legend_size})
+    plt.show()
+    
+    
+    
+#plot different types of unfairness vs risk wrt pairs of epsilon thresholds      
+def plot_risk_unf_compare(pairs_list, model_list, unf_type_list, risk_type_list, 
+                          markers_list=['o','s','x'], dataset='communities and crime', 
+                          x_label = 'unfairness', y_label = 'risk',
+                          K=2, colors = ['g', 'orange'], legend_size=8, alpha=0.7, annotate=True):
+    
+    plt.title(dataset)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    
+    for i, pair in enumerate(pairs_list):
+        unf, risk = pair[0], pair[1]
+        for s in range(K):
+            
+            LABEL = str(model_list[i])+' | '+str(unf_type_list[i])+' | '+str(risk_type_list[i])+' | s='+str(s)
+            if model_list[i] == 'base':
+                ALPHA=1
+            else:
+                ALPHA=alpha
+                
+            plt.scatter(unf[s], risk, label= LABEL, 
+                        marker=markers_list[i], alpha=ALPHA, color=colors[s])
+            
+            if annotate:
+                if model_list[i] != 'base':
+                    for j in range(len(risk)):
+                        plt.annotate('eps'+str(j+1), (unf[s][j], risk[j]), fontsize=8)
+            
+    plt.legend(prop={'size': legend_size})
+    plt.show()
