@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def get_lawschool_data():
+def get_lawschool_data(as_df=False):
     
     df = pd.read_csv('./data/lawschool.csv')
     df = df.dropna()
@@ -16,9 +16,12 @@ def get_lawschool_data():
     df = df.drop('race', axis=1)
     X = df.to_numpy() #features
     
-    return X, S, y
+    if as_df: #for comparing with agarwal
+        return df, S, y
+    else:
+        return X, S, y
 
-def get_communities_data():
+def get_communities_data(as_df=False):
     
     df = pd.read_csv('./data/communities.csv')
     df = df.fillna(0)
@@ -38,7 +41,10 @@ def get_communities_data():
 
     X = df.to_numpy() #features
     
-    return X, S, y
+    if as_df: #for comparing with agarwal
+        return df, S, y
+    else:
+        return X, S, y
 
 def get_frequencies(S):
     p = []
