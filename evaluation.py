@@ -249,13 +249,15 @@ def compare_with_ADW(dataset, num, T, eps_list, print_details = True, beta='auto
             
             
             X_train_df, X_test_df, S_train_df, S_test, y_train_df, y_test = train_test_split(X, S, y, 
-                                                                                             test_size=TEST_SIZE, stratify=S)
+                                                                                             test_size=TEST_SIZE, stratify=S,
+                                                                                             random_state=i)
             X_train_df.index, S_train_df.index, y_train_df.index = range(len(X_train_df)), range(len(S_train_df)), range(len(y_train_df))
             X_test_df.index, S_test.index, y_test.index = range(len(X_test_df)), range(len(S_test)), range(len(y_test))
 
             #additionally splitting into train and unlab for our method 
             X_train, X_unlab, S_train, S_unlab, y_train, y_unlab = train_test_split(X_train_df.to_numpy(), S_train_df, y_train_df, 
-                                                                        train_size = TRAIN_SIZE/(1-TEST_SIZE), stratify=S_train_df)
+                                                                        train_size = TRAIN_SIZE/(1-TEST_SIZE), stratify=S_train_df,
+                                                                        random_state=i)
             X_test = X_test_df.to_numpy() 
             
             #our method
@@ -277,7 +279,8 @@ def compare_with_ADW(dataset, num, T, eps_list, print_details = True, beta='auto
             y_pred_fair = fair_reg.predict(X_test)
             y_pred_prob_fair = fair_reg.pred_prob
             
-            r_X = np.square(y_pred_base[:, np.newaxis] - fair_reg.Q_L)
+            #r_X = np.square(y_pred_base[:, np.newaxis] - fair_reg.Q_L)
+            r_X = np.square(y_test[:, np.newaxis] - fair_reg.Q_L)
             prob_risk.append(np.mean(np.sum(r_X*y_pred_prob_fair, axis=1)))
             
             mse_risk.append(mse(y_test, y_pred_fair))
