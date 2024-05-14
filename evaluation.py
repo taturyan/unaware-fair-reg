@@ -169,7 +169,7 @@ def get_risk_unf_wrt_eps(dataset, num, T, eps_list, print_details = True, beta='
             clf.fit(X_train,S_train)
             classif_score.append(clf.score(X_test, S_test))
 
-            fair_reg = FairReg(reg, clf, B=B, K=K,  p=p, eps=eps, T=T, N=N, keep_history = False)
+            fair_reg = FairReg(reg, clf, B=B, K=K,  p=p, eps=eps, T=T, keep_history = False)
             fair_reg.fit(X_unlab, beta, L)
             
             end = time.time()

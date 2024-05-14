@@ -69,17 +69,61 @@ class FairReg:
         w = w_init
         w_hist = []
         for t in range(0, N1):
-            w, w_hist_ = self.SGD(X, w, 1 / (2 * M), int(4 * M / mu), w_reg, mu_reg)
+            w, w_hist_ = self.SGD(X, w, 1 / (2 * M), int(np.floor(M / mu)), w_reg, mu_reg)
             if self.keep_history:
                 w_hist+=w_hist_
-        for k in range(1, K1 + 1):
-            w, w_hist_ = self.SGD(X, w, 1 / (2**k * M), int((2**(k + 2)) * M / mu), w_reg, mu_reg)
+        for k in range(0, K1):
+            w, w_hist_ = self.SGD(X, w, 1 / (2**k * M), int(np.floor((2**(k + 2)) * M / mu)), w_reg, mu_reg)
             if self.keep_history:
                 w_hist+=w_hist_
         return w, w_hist
 
+
+    def accelerated_grad(self, X, w_init, mu, M, T, w_reg=[], mu_reg=[]):
+        w = w_init
+        w_ag = w_init
+        w_hist = []
+        half_time = int(T / 2)
+        for i in range(half_time):
+            alpha = 2 / (i+1)
+            gamma = 4 * M / ((i+1) * (i+2))
+            alpha1 = 1 - alpha
+
+            coef1 = (alpha1 * (mu + gamma)) / (gamma + (1 - alpha ** 2) * mu)
+            coef2 = alpha * (alpha1 * mu + gamma) / (gamma + (1 - alpha ** 2) * mu)
+            coef3 = alpha * mu / (mu + gamma)
+            coef4 = (alpha1 * mu + gamma) / (mu + gamma)
+            coef5 = alpha / (mu + gamma)
+
+            w_md = coef1 * w_ag + coef2 * w
+            x = X[np.random.randint(len(X))]
+            w = coef3 * w_md + coef4 * w - coef5 * self.stoch_grad_reg(w_md, x, w_reg, mu_reg)
+            w[w<0] = 0
+            w_ag = alpha * w + alpha1 * w_ag
+
+        for i in range(half_time):
+            alpha = 2 / (i+1)
+            gamma = 4 * M / ((i+1) * (i+2))
+            alpha1 = 1 - alpha
+
+            coef1 = (alpha1 * (mu + gamma)) / (gamma + (1 - alpha ** 2) * mu)
+            coef2 = alpha * (alpha1 * mu + gamma) / (gamma + (1 - alpha ** 2) * mu)
+            coef3 = alpha * mu / (mu + gamma)
+            coef4 = (alpha1 * mu + gamma) / (mu + gamma)
+            coef5 = alpha / (mu + gamma)
+
+            w_md = coef1 * w_ag + coef2 * w
+            x = X[np.random.randint(len(X))]
+            w = coef3 * w_md + coef4 * w - coef5 * self.stoch_grad_reg(w_md, x, w_reg, mu_reg)
+            w[w<0] = 0
+            w_ag = alpha * w + alpha1 * w_ag
+
+        return w_ag, w_hist
+
+
     def SGD3_sc(self, X, w_init, mu_init, M, T, sc = True):
         w = w_init
+        new_init = w_init
         mu = mu_init
         w_reg = []
         mu_reg = []
@@ -91,7 +135,10 @@ class FairReg:
         S1 = int(np.floor(np.log2(M/mu)))
         print("S1:", S1)
         for s in range(1, S1+1):
-            w, w_hist = self.SGD_sc(X, w, mu, 3*M, int(T/S1), w_reg, mu_reg)
+            # w, w_hist = self.SGD_sc(X, w, mu, 3*M, int(np.floor(T/S1)), w_reg, mu_reg)
+            w, w_hist = self.accelerated_grad(X, new_init, mu, M,
+                                              T=int(np.floor(T/S1)), w_reg=w_reg, mu_reg=mu_reg)
+            new_init = w_init
             mu = 2*mu
             w_reg.append(w)
             mu_reg.append(mu)
@@ -99,7 +146,8 @@ class FairReg:
                 w_history+=w_hist
         return w, w_history
 
-    def SGD3(self, X, w_init, mu, M, T):
+
+    def SGD3(self, X, w_init, mu, M, T, method='accelerated'):
         return self.SGD3_sc(X, w_init, mu, M + mu, T, sc = False)
 
     def fit(self, X, beta = 'auto', L = 'auto', history = False):
@@ -117,16 +165,18 @@ class FairReg:
         
         if beta == 'auto':
             #self.beta = np.sqrt(self.N)/np.log2(self.N) #temperature param in softmax
-            self.beta = 5*np.sqrt(self.N) #temperature param in softmax
+            self.beta = 2. * np.sqrt(self.N) * np.log2(self.N) #temperature param in softmax
         else:
             self.beta = beta
             
         self.Q_L = np.arange(-self.L, self.L + 1) * self.B / self.L #the grid
         self.M = 2*self.beta*sum_ps #Lipschits constant
         #self.mu = 2*sum_ps/self.beta #strong-convexity param
-        self.mu = self.M / self.T
+        self.mu =  self.M / self.T
+        # self.M * np.log(self.T) / self.T
         self.w_0 = np.zeros(2*self.K*(2*self.L+1)) #initial point
         self.w_est, self.w_est_hist = self.SGD3(X, self.w_0, self.mu, self.M, self.T)
+        # print(self.w_est)
         print("stoch_grad counter: ",  self.stoch_grad_counter)
 
     def predict(self, X):

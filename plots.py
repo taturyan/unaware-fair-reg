@@ -220,8 +220,8 @@ def plot_risk_unf_compare(pairs_list, model_list, unf_type_list, risk_type_list,
                         plt.annotate('eps'+str(j+1), (unf_[j], risk_[j]), fontsize=8)
             
     plt.legend(prop={'size': legend_size})
-    plt.xlim(left=0)
-    plt.ylim(bottom=0)
+    # plt.xlim(left=0)
+    # plt.ylim(bottom=0)
     plt.show()
     
     
