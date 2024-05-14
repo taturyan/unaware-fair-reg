@@ -9,7 +9,7 @@ from sklearn.metrics import mean_squared_error as mse
 from evaluation_measures import DP_unfairness, prob_unfairness
 
 class FairReg:
-    def __init__(self, base_method, classifier, B, K, p, eps, T, keep_history=False):
+    def __init__(self, base_method, classifier, B, K, p, eps, T, N, keep_history=False):
         self.base_method = base_method
         self.classifier = classifier
         self.B = B #bound on target
@@ -17,9 +17,13 @@ class FairReg:
         self.p = p #frequencies
         self.eps = eps #epsilon threshold
         self.T = T #number of iterations
+        self.N = N #number of data
         self.keep_history = keep_history #keeping history of estimators
+        self.stoch_grad_counter = 0
+
 
     def stoch_grad(self, w, x):
+        self.stoch_grad_counter += 1
 
         reg_pred = self.base_method.predict(x.reshape(1, -1))
         clf_prob = self.classifier.predict_proba(x.reshape(1, -1))
@@ -59,11 +63,13 @@ class FairReg:
         return np.mean(w_all, axis=0), w_hist  
     
     def SGD_sc(self, X, w_init, mu, M, T, w_reg=[], mu_reg=[]):
-        N1 = int(np.floor(T / (8 * M / mu)))
-        K1 = int(np.floor(np.log(mu * T / (16 * M))))
+        N1 = int(np.floor(T / (M / mu)))
+        K1 = int(np.floor(np.log2(mu * T / M)))
+        print("N1:", N1)
+        print("K1:", K1)
         w = w_init
         w_hist = []
-        for t in range(1, N1 + 1):
+        for t in range(0, N1):
             w, w_hist_ = self.SGD(X, w, 1 / (2 * M), int(4 * M / mu), w_reg, mu_reg)
             if self.keep_history:
                 w_hist+=w_hist_
@@ -83,7 +89,8 @@ class FairReg:
         if sc == False:
             w_reg.append(w)
             mu_reg.append(w)
-        S1 = int(np.floor(np.log(M/mu)))
+        S1 = int(np.floor(np.log2(M/mu)))
+        print("S1:", S1)
         for s in range(1, S1+1):
             w, w_hist = self.SGD_sc(X, w, mu, 3*M, int(T/S1), w_reg, mu_reg)
             mu = 2*mu
@@ -103,21 +110,23 @@ class FairReg:
             sum_ps += (1-p_s)/p_s
         
         if L == 'auto':
-            self.L = int(np.sqrt(self.T)) #discretization param
+            self.L = int(np.sqrt(self.N)) #discretization param
         else:
             self.L = L
         
         if beta == 'auto':
-            self.beta = np.sqrt(self.T)/np.log(self.T) #temperature param in softmax
+            #self.beta = np.sqrt(self.N)/np.log2(self.N) #temperature param in softmax
+            self.beta = 5*np.sqrt(self.N) #temperature param in softmax
         else:
             self.beta = beta
             
         self.Q_L = np.arange(-self.L, self.L + 1) * self.B / self.L #the grid
         self.M = 2*self.beta*sum_ps #Lipschits constant
-        self.mu = 2*sum_ps/self.beta #strong-convexity param
+        #self.mu = 2*sum_ps/self.beta #strong-convexity param
+        self.mu = self.M / self.T
         self.w_0 = np.zeros(2*self.K*(2*self.L+1)) #initial point
-        
         self.w_est, self.w_est_hist = self.SGD3(X, self.w_0, self.mu, self.M, self.T)
+        print("stoch_grad counter: ",  self.stoch_grad_counter)
 
     def predict(self, X):
         
