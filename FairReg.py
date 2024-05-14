@@ -113,8 +113,8 @@ class FairReg:
             self.beta = beta
             
         self.Q_L = np.arange(-self.L, self.L + 1) * self.B / self.L #the grid
-        self.M = self.beta*sum_ps #Lipschits constant
-        self.mu = sum_ps/self.beta #strong-convexity param
+        self.M = 2*self.beta*sum_ps #Lipschits constant
+        self.mu = 2*sum_ps/self.beta #strong-convexity param
         self.w_0 = np.zeros(2*self.K*(2*self.L+1)) #initial point
         
         self.w_est, self.w_est_hist = self.SGD3(X, self.w_0, self.mu, self.M, self.T)
@@ -148,21 +148,21 @@ class FairReg:
             tau_X_coef[:,i] = 1 - clf_prob[:,i]/p_i 
         
         r_X = np.square(reg_pred[:, np.newaxis] - self.Q_L)
+        r_X_y = np.square(y[:, np.newaxis] - self.Q_L)
         
         risk_history = []
         prob_unfairness_history = []
-        DP_unfairness_history = []
+        unfairness_history = []
         
         for w_est in self.w_est_hist:
             diff = (w_est[:self.K*(2*self.L+1)].copy() - w_est[self.K*(2*self.L+1):].copy()).reshape((self.K,2*self.L+1))
             pred_prob = softmax(self.beta*(np.matmul(tau_X_coef,diff) - r_X), axis = 1)
-            y_pred = (np.argmax(pred_prob, axis=1)-self.L)*self.B/self.L
             
-            risk_history.append(np.mean(np.sum(r_X*pred_prob, axis=1))) #probabilistic risk history
-            prob_unfairness_history.append(prob_unfairness(pred_prob, S))
-            DP_unfairness_history.append(DP_unfairness(y_pred, S, bins=self.Q_L))
+            risk_history.append(np.mean(np.sum(r_X_y*pred_prob, axis=1))) #probabilistic risk history
+            prob_unfairness_history.append(prob_unfairness(pred_prob, S)) #probabilistic unfairness history
+            unfairness_history.append(unfairness(pred_prob, S)) #unfairness history
             
-        return risk_history, prob_unfairness_history, DP_unfairness_history
+        return risk_history, prob_unfairness_history, unfairness_history
         
         
 
