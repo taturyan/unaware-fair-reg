@@ -124,9 +124,14 @@ def plot_unfairness_history(unf_all, T, K, moving_av=1, unf_type='average unfair
         plt.legend()
         
 #plot unfairness vs risk wrt number of iterations        
-def plot_unfairness_vs_risk(risk_history_all, unf_all, T, K, moving_av=1, dataset='law school'):
+def plot_unfairness_vs_risk(risk_history_all, unf_all, T, K, moving_av=1, dataset='law school', loglog=False):
     
     colors = ['g', 'orange']
+    
+    if loglog:
+        plt.xscale('log')
+        plt.yscale('log')
+        
     plt.xlabel('risk')
     plt.ylabel('average unfairness in grid')
     plt.title(dataset)
@@ -154,7 +159,12 @@ def plot_unfairness_vs_risk(risk_history_all, unf_all, T, K, moving_av=1, datase
 #plot unfairness vs risk wrt pairs of epsilon thresholds           
 def plot_risk_unf_wrt_eps(unf_all, risk_all, K=2, unf_type='average unfairness in grid', 
                           risk_type='probabilistic risk', dataset='communities and crime',
-                          colors = ['g', 'orange'], legend_size=8, alpha=0.7):   
+                          colors = ['g', 'orange'], legend_size=8, alpha=0.7, loglog=False):  
+    
+    if loglog:
+        plt.xscale('log')
+        plt.yscale('log')
+        
     plt.title(dataset)
     plt.xlabel(unf_type)
     plt.ylabel(risk_type)
@@ -168,12 +178,15 @@ def plot_risk_unf_wrt_eps(unf_all, risk_all, K=2, unf_type='average unfairness i
     plt.show()
     
     
-    
+
 #plot different types of unfairness vs risk wrt pairs of epsilon thresholds      
 def plot_risk_unf_compare(pairs_list, model_list, unf_type_list, risk_type_list, 
                           markers_list=['o','s','x'], dataset='communities and crime', 
                           x_label = 'unfairness', y_label = 'risk',
-                          K=2, colors = ['g', 'orange'], legend_size=8, alpha=0.7, annotate=True):
+                          K=2, colors = ['g', 'orange'], legend_size=8, alpha=0.7, annotate=True, loglog=False):
+    if loglog:
+        plt.xscale('log')
+        plt.yscale('log')
     
     plt.title(dataset)
     plt.xlabel(x_label)
@@ -189,13 +202,56 @@ def plot_risk_unf_compare(pairs_list, model_list, unf_type_list, risk_type_list,
             else:
                 ALPHA=alpha
                 
-            plt.scatter(unf[s], risk, label= LABEL, 
+            if isinstance(unf[s], dict):
+                unf_=unf[s]['mean']
+            else:
+                unf_=unf[s]
+            if isinstance(risk, dict):
+                risk_=risk['mean']
+            else:
+                risk_=risk
+                
+            plt.scatter(unf_, risk_, label= LABEL, 
                         marker=markers_list[i], alpha=ALPHA, color=colors[s])
             
             if annotate:
                 if model_list[i] != 'base':
-                    for j in range(len(risk)):
-                        plt.annotate('eps'+str(j+1), (unf[s][j], risk[j]), fontsize=8)
+                    for j in range(len(risk_)):
+                        plt.annotate('eps'+str(j+1), (unf_[j], risk_[j]), fontsize=8)
             
     plt.legend(prop={'size': legend_size})
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
+    plt.show()
+    
+    
+def plot_time_compare(hist_1, hist_2, eps_list, labels=['unaware-fair', 'ADW'], dataset= 'communities and crime',
+                     loglog=False):
+    
+    if loglog:
+        plt.xscale('log')
+        plt.yscale('log')
+    
+    plt.title(dataset)
+    plt.xlabel('epsilon')
+    plt.ylabel('training time')
+    
+    k = int(len(hist_1)/len(eps_list))
+
+    hist_1_mean = []
+    hist_2_mean = []
+    
+    for i in range (0, len(eps_list)):
+        hist_1_mean.append(np.mean(hist_1[k*i:k*i+3]))
+        hist_2_mean.append(np.mean(hist_2[k*i:k*i+3]))
+    
+    plt.plot(eps_list, hist_1_mean, label=labels[0], marker='o', linestyle='dashed', color = 'tab:blue', alpha=0.9)
+    for x, y in zip(eps_list, hist_1_mean):
+        plt.text(x, y, f'{round(y,2)}', color='black', ha='center')
+        
+    plt.plot(eps_list, hist_2_mean, label=labels[1], marker='o', linestyle='dashed', color = 'tab:orange', alpha=0.9)
+    for x, y in zip(eps_list, hist_2_mean):
+        plt.text(x, y, f'{round(y,2)}', color='black', ha='center')
+        
+    plt.legend()
     plt.show()
