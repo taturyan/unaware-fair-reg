@@ -1,9 +1,21 @@
 import numpy as np
 
+def unfairness(pred_prob, S):
+    PMF = pred_prob.mean(axis=0)
+    CDF=np.cumsum(PMF)
+    
+    Unfairness = {}
+    S_val = sorted(S.unique())
+    for s in S_val:
+        PMF_s = pred_prob[S==s].mean(axis=0)
+        CDF_s = np.cumsum(PMF_s)
+        Unfairness[s]=max(abs(CDF_s-CDF))
+    return Unfairness    
+
 def DP_unfairness(y, S, bins='auto'):
     
     hist, bin_edges = np.histogram(y,bins=bins)
-    CDF = np.cumsum(hist/sum(hist))
+    CDF = np.cumsum(hist/len(y))
     
     Unfairness = {}
     S_val = sorted(S.unique())
@@ -51,11 +63,11 @@ def DP_unfairness_summary(DP_unfairness_history, K):
         DP_unf[s] = []
     for elem in DP_unfairness_history:
         for s in range(K):
-            DP_unf[s].append(elem[s])
+            DP_unf[s].append(elem[s] )
             
     return DP_unf
 
-def prob_risk(base_pred, grid, pred_prob):
+def prob_risk(y, grid, pred_prob):
     
-    r_X = np.square(base_pred[:, np.newaxis] - grid)
+    r_X = np.square(y[:, np.newaxis] - grid)
     risk = np.mean(np.sum(r_X*pred_prob, axis=1))
