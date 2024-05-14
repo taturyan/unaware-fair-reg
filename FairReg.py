@@ -9,7 +9,7 @@ from sklearn.metrics import mean_squared_error as mse
 from evaluation_measures import DP_unfairness, prob_unfairness
 
 class FairReg:
-    def __init__(self, base_method, classifier, B, K, p, eps, T, N, keep_history=False):
+    def __init__(self, base_method, classifier, B, K, p, eps, T, keep_history=False):
         self.base_method = base_method
         self.classifier = classifier
         self.B = B #bound on target
@@ -17,7 +17,6 @@ class FairReg:
         self.p = p #frequencies
         self.eps = eps #epsilon threshold
         self.T = T #number of iterations
-        self.N = N #number of data
         self.keep_history = keep_history #keeping history of estimators
         self.stoch_grad_counter = 0
 
@@ -105,6 +104,8 @@ class FairReg:
 
     def fit(self, X, beta = 'auto', L = 'auto', history = False):
         
+        self.N = len(X)
+    
         sum_ps=0
         for p_s in self.p:
             sum_ps += (1-p_s)/p_s
