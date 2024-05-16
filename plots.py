@@ -177,13 +177,13 @@ def plot_risk_unf_wrt_eps(unf_all, risk_all, K=2, unf_type='average unfairness i
     plt.legend(prop={'size': legend_size})
     plt.show()
     
-    
 
 #plot different types of unfairness vs risk wrt pairs of epsilon thresholds      
-def plot_risk_unf_compare(pairs_list, model_list, unf_type_list, risk_type_list, 
+def plot_risk_unf_compare(pairs_list, model_list, unf_type_list, risk_type_list,
                           markers_list=['o','s','x'], dataset='communities and crime', 
                           x_label = 'unfairness', y_label = 'risk',
-                          K=2, colors = ['g', 'orange'], legend_size=8, alpha=0.7, annotate=True, loglog=False):
+                          S_list=[0], colors = [['tab:green'],['tab:orange']], legend_size=8, alpha=0.7, 
+                          annotate=False, loglog=False, start_0=False):
     if loglog:
         plt.xscale('log')
         plt.yscale('log')
@@ -194,7 +194,7 @@ def plot_risk_unf_compare(pairs_list, model_list, unf_type_list, risk_type_list,
     
     for i, pair in enumerate(pairs_list):
         unf, risk = pair[0], pair[1]
-        for s in range(K):
+        for s in S_list:
             
             LABEL = str(model_list[i])+' | '+str(unf_type_list[i])+' | '+str(risk_type_list[i])+' | s='+str(s)
             if model_list[i] == 'base':
@@ -211,17 +211,16 @@ def plot_risk_unf_compare(pairs_list, model_list, unf_type_list, risk_type_list,
             else:
                 risk_=risk
                 
-            plt.scatter(unf_, risk_, label= LABEL, 
-                        marker=markers_list[i], alpha=ALPHA, color=colors[s])
-            
+            plt.plot(unf_, risk_, label=LABEL, marker=markers_list[i], linestyle='dashed', color=colors[i][s], alpha=ALPHA)
             if annotate:
                 if model_list[i] != 'base':
                     for j in range(len(risk_)):
                         plt.annotate('eps'+str(j+1), (unf_[j], risk_[j]), fontsize=8)
             
     plt.legend(prop={'size': legend_size})
-    # plt.xlim(left=0)
-    # plt.ylim(bottom=0)
+    if start_0:
+        plt.xlim(left=0)
+        plt.ylim(bottom=0)
     plt.show()
     
     
