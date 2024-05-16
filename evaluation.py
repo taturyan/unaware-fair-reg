@@ -48,9 +48,10 @@ def get_stats(dataset='lawschool', num=10, T=15000, eps = [0.01, 0.01], beta='au
     
         print (i,'/',num, ': training...')
 
-        X_train, X_, S_train, S_, y_train, y_ = train_test_split(X, S, y, train_size=TRAIN_SIZE, stratify=S, random_state=i)
-        X_unlab, X_test, S_unlab, S_test, y_unlab, y_test = train_test_split(X_, S_, y_, test_size = TEST_SIZE/(1-TRAIN_SIZE), 
-                                                                             stratify=S_, random_state=i)
+        X_train, X_, S_train, S_, y_train, y_ = train_test_split(X, S, y, test_size=TEST_SIZE, stratify=S, random_state=i)
+        X_unlab, X_test, S_unlab, S_test, y_unlab, y_test = train_test_split(X_, S_, y_, 
+                                                                                 train_size = TRAIN_SIZE/(1-TEST_SIZE), stratify=S_,
+                                                                                 random_state=i)
 
 # #         if dataset=='lawschool':
 #         reg = xgb.XGBRegressor(max_depth=10, objective='reg:linear', n_estimators=400, reg_lambda=1, gamma=2, verbosity = 0)
@@ -153,16 +154,15 @@ def get_risk_unf_wrt_eps(dataset, num, T, eps_list, print_details = True, beta='
     
         for i in range(1, num+1):
 
-            X_train, X_, S_train, S_, y_train, y_ = train_test_split(X, S, y, train_size=TRAIN_SIZE, stratify=S, random_state=i)
+            X_train, X_, S_train, S_, y_train, y_ = train_test_split(X, S, y, test_size=TEST_SIZE, stratify=S, random_state=i)
             X_unlab, X_test, S_unlab, S_test, y_unlab, y_test = train_test_split(X_, S_, y_, 
-                                                                                 test_size = TEST_SIZE/(1-TRAIN_SIZE), stratify=S_,
+                                                                                 train_size = TRAIN_SIZE/(1-TEST_SIZE), stratify=S_,
                                                                                  random_state=i)
-            N = len(X_unlab)
-            print(N)
             
             start = time.time()
-
+            
             reg = LinearRegression(fit_intercept=False)
+            #reg = xgb.XGBRegressor(max_depth=10, objective='reg:linear', n_estimators=400, reg_lambda=1, gamma=2, verbosity = 0)
             reg.fit(X_train,y_train)
             
             clf = LogisticRegression()
@@ -383,7 +383,7 @@ def compare_with_ADW(dataset, num, T, eps_list, print_details = True, beta='auto
 
 
 def get_stats_ADW(dataset, num, eps_list, print_details = True,
-            TRAIN_SIZE=0.4, UNLAB_SIZE=0.4, TEST_SIZE=0.2):
+            TRAIN_SIZE=0.4, UNLAB_SIZE=0.4, TEST_SIZE=0.2, partial_training=False):
     
     #geting the data
     if dataset=='lawschool':
@@ -428,19 +428,20 @@ def get_stats_ADW(dataset, num, eps_list, print_details = True,
             unf[s] = []
      
         for i in range(1, num+1):
-            
-            X_train_df, X_test_df, S_train_df, S_test, y_train_df, y_test = train_test_split(X, S, y, 
-                                                                                             test_size=TEST_SIZE, stratify=S,
-                                                                                             random_state=i)
-            X_train_df.index, S_train_df.index, y_train_df.index = range(len(X_train_df)), range(len(S_train_df)), range(len(y_train_df))
+
+            X_df, X_test_df, S_df, S_test, y_df, y_test = train_test_split(X, S, y,
+                                                                           test_size=TEST_SIZE, stratify=S, random_state=i)
+            X_df.index, S_df.index, y_df.index = range(len(X_df)), range(len(S_df)), range(len(y_df))
             X_test_df.index, S_test.index, y_test.index = range(len(X_test_df)), range(len(S_test)), range(len(y_test))
 
-            #additionally splitting into train and unlab for our method 
-            X_train, X_unlab, S_train, S_unlab, y_train, y_unlab = train_test_split(X_train_df.to_numpy(), S_train_df, y_train_df, 
-                                                                        train_size = TRAIN_SIZE/(1-TEST_SIZE), stratify=S_train_df,
-                                                                        random_state=i)
-            X_test = X_test_df.to_numpy() 
-            
+            #additionally splitting into train and unlab according to our method
+            if partial_training:
+                X_train_df, X_unlab_df, S_train_df, S_unlab_df, y_train_df, y_unlab_df = train_test_split(X_df, S_df, y_df, 
+                                                                            train_size = TRAIN_SIZE/(1-TEST_SIZE), stratify=S_df,
+                                                                            random_state=i)
+                X_train_df.index, S_train_df.index, y_train_df.index = range(len(X_train_df)),range(len(S_train_df)),range(len(y_train_df))
+            else:
+                X_train_df, S_train_df, y_train_df = X_df, S_df, y_df
     
             #Agarwal et. al
             start = time.time()
