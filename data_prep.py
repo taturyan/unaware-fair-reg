@@ -45,9 +45,55 @@ def get_communities_data(as_df=False):
         return df, S, y
     else:
         return X, S, y
-
+    
 def get_frequencies(S):
     p = []
     for p_s in sorted(S.value_counts(1)):
         p.append(p_s)
     return p 
+    
+    
+#as in ADW
+
+def get_adult_data(as_df=False):
+    """
+    Parse the entire dataset of adult
+    """
+    df = pd.read_csv("./data/adult.csv", )
+    df = df.dropna()
+    df = df.replace({'?':np.nan}).dropna()
+    df["income"] = df["income"].map({'<=50K': 0, '>50K': 1})
+    df['sex'] = df['sex'].map({'Male': 1, 'Female': 0})
+    y = df["age"] #target
+    df = df.drop("age", 1)
+    # hot code categorical variables
+    S = df['sex']
+    df = df.drop('sex', axis=1)
+    df = drop_str(df)
+    log_numeric_features(df)
+    X = df.to_numpy() #features
+    
+    if as_df: #for comparing with agarwal
+        return df, S, y
+    else:
+        return X, S, y
+
+
+def drop_str(df):
+    cols = df.columns
+    for c in cols:
+        if isinstance(df[c][1], str):
+            column = df[c]
+            df = df.drop(c, 1)
+    return df
+
+def log_numeric_features(df):
+    cols = df.columns
+    for c in cols:
+        column =df[c]
+        unique_values = list(set(column))
+        n = len(unique_values)
+        if n > 2:
+            df[c] = np.log(1 + df[c])
+
+

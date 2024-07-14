@@ -63,7 +63,7 @@ def DP_unfairness_summary(DP_unfairness_history, K):
         DP_unf[s] = []
     for elem in DP_unfairness_history:
         for s in range(K):
-            DP_unf[s].append(elem[s] )
+            DP_unf[s].append(elem[s])
             
     return DP_unf
 
@@ -71,3 +71,5 @@ def prob_risk(y, grid, pred_prob):
     
     r_X = np.square(y[:, np.newaxis] - grid)
     risk = np.mean(np.sum(r_X*pred_prob, axis=1))
+    
+    return risk
